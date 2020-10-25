@@ -9,6 +9,27 @@
       padding: 0;
     }
 
+    .blinktext {
+      animation: blinkingText 600ms infinite;
+      animation-timing-function: ease-in-out;
+    }
+
+    @keyframes blinkingText {
+      0% {
+        -moz-transform: scaleY(1);
+        -o-transform: scaleY(1);
+        -webkit-transform: scaleY(1);
+        transform: scaleY(1);
+      }
+
+      50% {
+        -moz-transform: scaleY(-1);
+        -o-transform: scaleY(-1);
+        -webkit-transform: scaleY(-1);
+        transform: scaleY(-1);
+      }
+    }
+
     body {
       font: 50px Helvetica, Arial;
       overflow: hidden;
@@ -36,29 +57,43 @@
   // Udpdate the existing table with the latest state updates
   function updateTable() {
     Object.keys(state).forEach((key) => {
-        const chan = state[key];
+      const chan = state[key];
 
-        var td = document.getElementById('td_' + key + '_call');
-        if (chan.call) {
-          td.style.backgroundColor = chan.color;
-        } else {
-          td.style.backgroundColor = '';
-        }
+      const color = getColor(chan.color);
+      const rgbaColor = 'rgba(' + color.join(',') + ',';
 
-        var td = document.getElementById('td_' + key + '_talk');
-        if (chan.talk) {
-          td.style.backgroundColor = chan.color;
-        } else {
-          td.style.backgroundColor = '';
-        }
+      var td = document.getElementById('td_' + key + '_call');
+      if (chan.call) {
+        td.style.backgroundColor = rgbaColor + '1)';
+        td.classList.add('blinktext');
+      } else {
+        td.style.backgroundColor = '';
+        td.classList.remove('blinktext');
+      }
 
-        var td = document.getElementById('td_' + key + '_text');
-        if (chan.text) {
-          td.style.backgroundColor = chan.color;
-        } else {
-          td.style.backgroundColor = '';
-        }
-      });
+      var td = document.getElementById('td_' + key + '_talk');
+      if (chan.talk) {
+        td.style.backgroundColor = rgbaColor + '0.4)';
+      } else {
+        td.style.backgroundColor = '';
+      }
+
+      var td = document.getElementById('td_' + key + '_text');
+      if (chan.text) {
+        td.style.backgroundColor = rgbaColor + '0.4)';
+      } else {
+        td.style.backgroundColor = '';
+      }
+    });
+  }
+
+  // https://stackoverflow.com/a/24366628
+  function getColor(colorStr) {
+    var a = document.createElement('div');
+    a.style.color = colorStr;
+    var colors = window.getComputedStyle(document.body.appendChild(a)).color.match(/\d+/g).map(function (a) { return parseInt(a, 10); });
+    document.body.removeChild(a);
+    return colors;
   }
 
   // When a new command comes is, handle that
@@ -74,8 +109,11 @@
         const chan = newState[key];
         const th = document.createElement('th');
         th.innerText = key;
-        th.style.backgroundColor = chan.color;
+        const color = getColor(chan.color);
+        const rgbaColor = 'rgba(' + color.join(',') + ',0.2)';
+        th.style.backgroundColor = rgbaColor;
         document.getElementById('trChanNames').append(th);
+
 
         var td = document.createElement('td');
         td.id = 'td_' + key + '_call';
@@ -96,7 +134,7 @@
       });
     }
     state = newState;
-    updateTable();  
+    updateTable();
   });
 </script>
 
