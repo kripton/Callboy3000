@@ -9,9 +9,7 @@ const app = require('express')();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
-// Save the current mode and message so we can update
-// the clients when they connect and don't have to wait
-// for a new message/command in Mumble
+// Every update to all clients contains the complete display state
 var state = {}
 
 function updateClients() {
@@ -25,14 +23,14 @@ function updateClients() {
       chan.call = false;
     }
 
-    // Talking resets after one second
-    if (chan.talkingLastTime < (moment() - 1000)) {
-      chan.talking = false;
+    // Talk resets after one second
+    if (chan.talkLastTime < (moment() - 1000)) {
+      chan.talk = false;
     }
 
-    // Messages reset after one second
-    if (chan.messageLastTime < (moment() - 1000)) {
-      chan.message = false;
+    // Text reset after one second
+    if (chan.textLastTime < (moment() - 1000)) {
+      chan.text = false;
     }
   });
 
@@ -91,10 +89,10 @@ client.on('ready', info => {
           color: chanColor,
           call: false,
           callLastTime: moment(),
-          talking: false,
-          talkingLastTime: moment(),
-          message: false,
-          messageLastTime: moment()
+          talk: false,
+          talkLastTime: moment(),
+          text: false,
+          textLastTime: moment()
         }
       }
     }
@@ -134,8 +132,8 @@ client.on('voiceData', (voiceData) => {
     if (!chanName.startsWith('Intercom')) {
       return;
     }
-    state[chanName[chanName.indexOf('Channel ') + 8]].talking = true;
-    state[chanName[chanName.indexOf('Channel ') + 8]].talkingLastTime = moment();
+    state[chanName[chanName.indexOf('Channel ') + 8]].talk = true;
+    state[chanName[chanName.indexOf('Channel ') + 8]].talkLastTime = moment();
   }
 });
 
@@ -159,8 +157,8 @@ client.on('message', message => {
     // TODO: Shout the file to the correct channel! whisperId / target bla bla
     //client.voiceConnection.playFile('call.mp3');
   } else {
-    state[chanName[chanName.indexOf('Channel ') + 8]].message = true;
-    state[chanName[chanName.indexOf('Channel ') + 8]].messageLastTime = moment();
+    state[chanName[chanName.indexOf('Channel ') + 8]].text = true;
+    state[chanName[chanName.indexOf('Channel ') + 8]].textLastTime = moment();
   }
 
   updateClients();

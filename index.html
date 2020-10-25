@@ -33,7 +33,7 @@
   }
   window.setInterval(checkConnected, 3000);
 
-  // Update the text to be displayed with the current clock/countdown + message
+  // Udpdate the existing table with the latest state updates
   function updateTable() {
     Object.keys(state).forEach((key) => {
         const chan = state[key];
@@ -46,14 +46,14 @@
         }
 
         var td = document.getElementById('td_' + key + '_talk');
-        if (chan.talking) {
+        if (chan.talk) {
           td.style.backgroundColor = chan.color;
         } else {
           td.style.backgroundColor = '';
         }
 
         var td = document.getElementById('td_' + key + '_text');
-        if (chan.message) {
+        if (chan.text) {
           td.style.backgroundColor = chan.color;
         } else {
           td.style.backgroundColor = '';
@@ -67,9 +67,9 @@
     if (Object.keys(newState).length != Object.keys(state).length) {
       // The number of intercom channels changed, recreate the table
       document.getElementById('trChanNames').innerHTML = '';
-      document.getElementById('trCalls').innerHTML = '';
-      document.getElementById('trTalking').innerHTML = '';
-      document.getElementById('trMessages').innerHTML = '';
+      document.getElementById('trCall').innerHTML = '';
+      document.getElementById('trTalk').innerHTML = '';
+      document.getElementById('trText').innerHTML = '';
       Object.keys(newState).forEach((key) => {
         const chan = newState[key];
         const th = document.createElement('th');
@@ -80,17 +80,17 @@
         var td = document.createElement('td');
         td.id = 'td_' + key + '_call';
         td.innerText = 'CALL';
-        document.getElementById('trCalls').append(td);
+        document.getElementById('trCall').append(td);
 
         var td = document.createElement('td');
         td.id = 'td_' + key + '_talk';
         td.innerText = 'TALK';
-        document.getElementById('trTalking').append(td);
+        document.getElementById('trTalk').append(td);
 
         var td = document.createElement('td');
         td.id = 'td_' + key + '_text';
         td.innerText = 'TEXT';
-        document.getElementById('trMessages').append(td);
+        document.getElementById('trText').append(td);
 
         console.log(chan);
       });
@@ -103,9 +103,9 @@
 <body>
   <table width="100%" border="1">
     <tr id="trChanNames"></tr>
-    <tr id="trCalls"></tr>
-    <tr id="trTalking"></tr>
-    <tr id="trMessages"></tr>
+    <tr id="trCall"></tr>
+    <tr id="trTalk"></tr>
+    <tr id="trText"></tr>
   </table>
 </body>
 
