@@ -1,8 +1,14 @@
 // Date and time tool
 const moment = require('moment');
 
+// HTML color names
+var colors = require('color-name');
+
 // Mumble client
 const NoodleJS = require('noodle.js');
+
+// OSC
+const osc = require("osc");
 
 // HTTP server with WebSocket support
 const app = require('express')();
@@ -13,24 +19,38 @@ const io = require('socket.io')(http);
 var state = {}
 
 function updateClients() {
-
   // For each channel, check if a field needs to be reset
   Object.keys(state).forEach((key) => {
     chan = state[key];
 
     // Call resets after 8 seconds
-    if (chan.callLastTime < (moment() - 8000)) {
+    if ((chan.call) && (chan.callLastTime < (moment() - 8000))) {
       chan.call = false;
+
+      udpOsc.send({
+        address: '/intercom/' + key + '/call',
+        args: [{type: "i", value: 0}]
+      });
     }
 
     // Talk resets after one second
-    if (chan.talkLastTime < (moment() - 1000)) {
+    if ((chan.talk) && (chan.talkLastTime < (moment() - 1000))) {
       chan.talk = false;
+
+      udpOsc.send({
+        address: '/intercom/' + key + '/talk',
+        args: [{type: "i", value: 0}]
+      });
     }
 
     // Text reset after one second
-    if (chan.textLastTime < (moment() - 1000)) {
+    if ((chan.text) && (chan.textLastTime < (moment() - 1000))) {
       chan.text = false;
+
+      udpOsc.send({
+        address: '/intercom/' + key + '/text',
+        args: [{type: "i", value: 0}]
+      });
     }
   });
 
@@ -67,6 +87,35 @@ const client = new NoodleJS({
   name: 'Callboy'
 });
 
+// Create an osc.js UDP Port listening on port 57121.
+var udpOsc = new osc.UDPPort({
+  localAddress: '0.0.0.0',
+  localPort: 57121,
+  remoteAddress: '255.255.255.255',
+  remotePort: 53000,
+  broadcast: true,
+  metadata: true
+});
+
+// Listen for incoming OSC messages.
+udpOsc.on("message", function (oscMsg, timeTag, info) {
+  // TODO: This is to handle CALLs made by wireless push buttons or the like
+  console.log("udpOsc: An OSC message just arrived!", oscMsg);
+  console.log("udpOsc: Remote info is: ", info);
+});
+
+udpOsc.on("error", function (error) {
+  console.log("udpOsc: An error occurred: ", error.message);
+});
+
+udpOsc.on("ready", function () {
+  console.log("udpOsc: Port ready :)");
+});
+
+
+// Open the socket.
+udpOsc.open();
+
 client.on('ready', info => {
   console.log('Connected to Mumble server:', info);
 
@@ -78,6 +127,7 @@ client.on('ready', info => {
   client.switchChannel(0).then(() => {
     for (var [key, value] of client.channels) {
       console.log(key + " = ", value.name);
+      // TODO: We should be using RegEx for the channel names instead
       if (value.name.startsWith('Intercom')) {
         console.log('Requesting to listen to "' + value.name + '"');
         client.startListeningToChannel(key);
@@ -107,6 +157,15 @@ client.on('ready', info => {
   });
 });
 
+function sendColorToOSC(chan) {
+  const color = colors[state[chan].color];
+  console.log('COOOOOLOOOOR: ', color);
+  udpOsc.send({
+    address: '/intercom/' + chan + '/color',
+    args: [{type: "i", value: color[0]}, {type: "i", value: color[1]}, {type: "i", value: color[2]}]
+  });
+}
+
 client.on('voiceData', (voiceData) => {
   // Find the name of the user from its session id
   for (var [key, value] of client.users) {
@@ -132,6 +191,16 @@ client.on('voiceData', (voiceData) => {
     if (!chanName.startsWith('Intercom')) {
       return;
     }
+
+    // Check if talk is currently false to only send the message once
+    if (!state[chanName[chanName.indexOf('Channel ') + 8]].talk) {
+      sendColorToOSC(chanName[chanName.indexOf('Channel ') + 8]);
+      udpOsc.send({
+        address: '/intercom/' + chanName[chanName.indexOf('Channel ') + 8] + '/talk',
+       args: [{type: "i", value: 1}]
+      });
+    }
+
     state[chanName[chanName.indexOf('Channel ') + 8]].talk = true;
     state[chanName[chanName.indexOf('Channel ') + 8]].talkLastTime = moment();
   }
@@ -151,14 +220,26 @@ client.on('message', message => {
     return;
   }
   if (message.content === 'C') {
+    sendColorToOSC(chanName[chanName.indexOf('Channel ') + 8]);
     state[chanName[chanName.indexOf('Channel ') + 8]].call = true;
     state[chanName[chanName.indexOf('Channel ') + 8]].callLastTime = moment();
+
+    udpOsc.send({
+      address: '/intercom/' + chanName[chanName.indexOf('Channel ') + 8] + '/call',
+      args: [{type: "i", value: 1}]
+    });
     
     // TODO: Shout the file to the correct channel! whisperId / target bla bla
     //client.voiceConnection.playFile('call.mp3');
   } else {
+    sendColorToOSC(chanName[chanName.indexOf('Channel ') + 8]);
     state[chanName[chanName.indexOf('Channel ') + 8]].text = true;
     state[chanName[chanName.indexOf('Channel ') + 8]].textLastTime = moment();
+
+    udpOsc.send({
+      address: '/intercom/' + chanName[chanName.indexOf('Channel ') + 8] + '/text',
+      args: [{type: "i", value: 1}]
+    });
   }
 
   updateClients();

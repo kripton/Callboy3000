@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "A mumble bot with HTTP server to manage CALLs on the intercom 3000",
   "dependencies": {
+    "color-name": "^1.1.4",
     "express": "^4.17.1",
     "moment": "^2.29.1",
     "noodle.js": "^1.4.0",
