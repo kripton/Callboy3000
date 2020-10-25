@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Callboy 3000</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font: 50px Helvetica, Arial;
+      overflow: hidden;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  // For non-polled communication to the backend
+  var socket = io();
+  // State of what should be displayed how
+  var state = {}
+  var connected = false;
+
+  function checkConnected() {
+    connected = true;
+    if (!socket.connected) {
+      connected = false;
+    }
+  }
+  window.setInterval(checkConnected, 3000);
+
+  // Update the text to be displayed with the current clock/countdown + message
+  function updateTable() {
+    Object.keys(state).forEach((key) => {
+        const chan = state[key];
+
+        var td = document.getElementById('td_' + key + '_call');
+        if (chan.call) {
+          td.style.backgroundColor = chan.color;
+        } else {
+          td.style.backgroundColor = '';
+        }
+
+        var td = document.getElementById('td_' + key + '_talk');
+        if (chan.talking) {
+          td.style.backgroundColor = chan.color;
+        } else {
+          td.style.backgroundColor = '';
+        }
+
+        var td = document.getElementById('td_' + key + '_text');
+        if (chan.message) {
+          td.style.backgroundColor = chan.color;
+        } else {
+          td.style.backgroundColor = '';
+        }
+      });
+  }
+
+  // When a new command comes is, handle that
+  socket.on('update', (newState) => {
+
+    if (Object.keys(newState).length != Object.keys(state).length) {
+      // The number of intercom channels changed, recreate the table
+      document.getElementById('trChanNames').innerHTML = '';
+      document.getElementById('trCalls').innerHTML = '';
+      document.getElementById('trTalking').innerHTML = '';
+      document.getElementById('trMessages').innerHTML = '';
+      Object.keys(newState).forEach((key) => {
+        const chan = newState[key];
+        const th = document.createElement('th');
+        th.innerText = key;
+        th.style.backgroundColor = chan.color;
+        document.getElementById('trChanNames').append(th);
+
+        var td = document.createElement('td');
+        td.id = 'td_' + key + '_call';
+        td.innerText = 'CALL';
+        document.getElementById('trCalls').append(td);
+
+        var td = document.createElement('td');
+        td.id = 'td_' + key + '_talk';
+        td.innerText = 'TALK';
+        document.getElementById('trTalking').append(td);
+
+        var td = document.createElement('td');
+        td.id = 'td_' + key + '_text';
+        td.innerText = 'TEXT';
+        document.getElementById('trMessages').append(td);
+
+        console.log(chan);
+      });
+    }
+    state = newState;
+    updateTable();  
+  });
+</script>
+
+<body>
+  <table width="100%" border="1">
+    <tr id="trChanNames"></tr>
+    <tr id="trCalls"></tr>
+    <tr id="trTalking"></tr>
+    <tr id="trMessages"></tr>
+  </table>
+</body>
+
+</html>
