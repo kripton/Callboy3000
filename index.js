@@ -125,12 +125,20 @@ client.on('ready', info => {
 
   // Stay in the root channel but "Listen" to all Intercom channels
   client.switchChannel(0).then(() => {
+    var voiceTarget = 10;
     for (var [key, value] of client.channels) {
       console.log(key + " = ", value.name);
       // TODO: We should be using RegEx for the channel names instead
       if (value.name.startsWith('Intercom')) {
-        console.log('Requesting to listen to "' + value.name + '"');
-        client.startListeningToChannel(key);
+        console.log('Requesting to listen to "' + value.name + '" and setup voiceTarget ' + voiceTarget);
+        
+        client.startListeningToChannel(key).then((msg) => {
+          console.log('startListeningToChannel success', msg)
+        });
+
+        client.setupVoiceTarget(voiceTarget, [], key).then((msg) => {
+          console.log('setupVoiceTarget success', msg)
+        });
 
         // Create the state for that channel
         const chan = value.name[value.name.indexOf('Channel ') + 8];
@@ -142,8 +150,11 @@ client.on('ready', info => {
           talk: false,
           talkLastTime: moment(),
           text: false,
-          textLastTime: moment()
+          textLastTime: moment(),
+          voiceTarget: voiceTarget
         }
+
+        voiceTarget += 1;
       }
     }
 
@@ -230,7 +241,8 @@ client.on('message', message => {
     });
     
     // TODO: Shout the file to the correct channel! whisperId / target bla bla
-    //client.voiceConnection.playFile('call.mp3');
+    console.log('CALL in channel "' + chanName + '". voiceTarget:' + state[chanName[chanName.indexOf('Channel ') + 8]].voiceTarget)
+    client.voiceConnection.playFile('call.mp3', state[chanName[chanName.indexOf('Channel ') + 8]].voiceTarget);
   } else {
     sendColorToOSC(chanName[chanName.indexOf('Channel ') + 8]);
     state[chanName[chanName.indexOf('Channel ') + 8]].text = true;
