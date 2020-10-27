@@ -6,7 +6,7 @@
     "color-name": "^1.1.4",
     "express": "^4.17.1",
     "moment": "^2.29.1",
-    "noodle.js": "^1.4.0",
+    "noodle.js": "^1.5.0",
     "osc": "^2.4.1",
     "socket.io": "^2.3.0"
   }
