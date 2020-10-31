@@ -28,8 +28,8 @@ function updateClients() {
       chan.call = false;
 
       udpOsc.send({
-        address: '/intercom/' + key + '/call',
-        args: [{type: "i", value: 0}]
+        address: '/intercom/call',
+        args: [{type: "s", value: key}, {type: "i", value: 0}]
       });
     }
 
@@ -38,8 +38,8 @@ function updateClients() {
       chan.talk = false;
 
       udpOsc.send({
-        address: '/intercom/' + key + '/talk',
-        args: [{type: "i", value: 0}]
+        address: '/intercom/talk',
+        args: [{type: "s", value: key}, {type: "i", value: 0}]
       });
     }
 
@@ -48,8 +48,8 @@ function updateClients() {
       chan.text = false;
 
       udpOsc.send({
-        address: '/intercom/' + key + '/text',
-        args: [{type: "i", value: 0}]
+        address: '/intercom/text',
+        args: [{type: "s", value: key}, {type: "i", value: 0}]
       });
     }
   });
@@ -163,17 +163,26 @@ client.on('ready', info => {
     // Update all clients now
     updateClients();
 
+    // Send the chan and color info via OSC
+    sendChanColorsToOSC();
+
     // Update all clients periodically
     setInterval(updateClients, 200);
   });
 });
 
-function sendColorToOSC(chan) {
-  const color = colors[state[chan].color];
-  console.log('COOOOOLOOOOR: ', color);
+function sendChanColorsToOSC() {
+  var args = [];
+  for (var key of Object.keys(state).sort()) {
+    const color = colors[state[key].color];
+    args.push({type: "s", value: key});
+    args.push({type: "i", value: color[0]});
+    args.push({type: "i", value: color[1]});
+    args.push({type: "i", value: color[2]});
+  }
   udpOsc.send({
-    address: '/intercom/' + chan + '/color',
-    args: [{type: "i", value: color[0]}, {type: "i", value: color[1]}, {type: "i", value: color[2]}]
+    address: '/intercom/chanColors',
+    args: args
   });
 }
 
@@ -203,12 +212,12 @@ client.on('voiceData', (voiceData) => {
       return;
     }
 
-    // Check if talk is currently false to only send the message once
-    if (!state[chanName[chanName.indexOf('Channel ') + 8]].talk) {
-      sendColorToOSC(chanName[chanName.indexOf('Channel ') + 8]);
+    // Send this packet at most every 200ms
+    if (moment() > state[chanName[chanName.indexOf('Channel ') + 8]].talkLastTime + 200) {
+      //sendColorToOSC(chanName[chanName.indexOf('Channel ') + 8]);
       udpOsc.send({
-        address: '/intercom/' + chanName[chanName.indexOf('Channel ') + 8] + '/talk',
-       args: [{type: "i", value: 1}]
+        address: '/intercom/talk',
+        args: [{type: "s", value: chanName[chanName.indexOf('Channel ') + 8]}, {type: "i", value: 1}]
       });
     }
 
@@ -231,26 +240,26 @@ client.on('message', message => {
     return;
   }
   if (message.content === 'C') {
-    sendColorToOSC(chanName[chanName.indexOf('Channel ') + 8]);
+    //sendColorToOSC(chanName[chanName.indexOf('Channel ') + 8]);
     state[chanName[chanName.indexOf('Channel ') + 8]].call = true;
     state[chanName[chanName.indexOf('Channel ') + 8]].callLastTime = moment();
 
     udpOsc.send({
-      address: '/intercom/' + chanName[chanName.indexOf('Channel ') + 8] + '/call',
-      args: [{type: "i", value: 1}]
+      address: '/intercom/call',
+      args: [{type: "s", value: chanName[chanName.indexOf('Channel ') + 8]}, {type: "i", value: 1}]
     });
     
     // TODO: Shout the file to the correct channel! whisperId / target bla bla
     console.log('CALL in channel "' + chanName + '". voiceTarget:' + state[chanName[chanName.indexOf('Channel ') + 8]].voiceTarget)
     client.voiceConnection.playFile('call.mp3', state[chanName[chanName.indexOf('Channel ') + 8]].voiceTarget);
   } else {
-    sendColorToOSC(chanName[chanName.indexOf('Channel ') + 8]);
+    //sendColorToOSC(chanName[chanName.indexOf('Channel ') + 8]);
     state[chanName[chanName.indexOf('Channel ') + 8]].text = true;
     state[chanName[chanName.indexOf('Channel ') + 8]].textLastTime = moment();
 
     udpOsc.send({
-      address: '/intercom/' + chanName[chanName.indexOf('Channel ') + 8] + '/text',
-      args: [{type: "i", value: 1}]
+      address: '/intercom/text',
+      args: [{type: "s", value: chanName[chanName.indexOf('Channel ') + 8]}, {type: "i", value: 1}]
     });
   }
 
