@@ -102,6 +102,10 @@ udpOsc.on("message", function (oscMsg, timeTag, info) {
   // TODO: This is to handle CALLs made by wireless push buttons or the like
   console.log("udpOsc: An OSC message just arrived!", oscMsg);
   console.log("udpOsc: Remote info is: ", info);
+
+  if (oscMsg.address === "/intercom/ping") {
+    sendChanColorsToOSC();
+  }
 });
 
 udpOsc.on("error", function (error) {
